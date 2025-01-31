@@ -338,7 +338,31 @@ def search_by_date():
 def table_page():
     if 'user_id' not in session:
         return redirect(url_for('main.login'))
-    return render_template('table.html')
+    
+    try:
+        # Obtener productos guardados del usuario actual
+        products = Product.query.filter_by(user_id=session['user_id']).all()
+        
+        # Convertir productos a formato para mostrar
+        product_list = []
+        for product in products:
+            product_list.append({
+                'name': product.name,
+                'amount': product.amount,
+                'date': product.date
+            })
+        
+        # Calcular total
+        total = sum(float(product['amount']) for product in product_list)
+        
+        return render_template('table.html', 
+                               products=product_list, 
+                               total=total,
+                               search_date=None)  # Añade esta línea
+    except Exception as e:
+        print(f"Error en tabla: {str(e)}")
+        flash('Error al cargar los productos')
+        return redirect(url_for('main.dashboard'))
 
 @bp.route('/save_current_date', methods=['POST'])
 def save_current_date():
