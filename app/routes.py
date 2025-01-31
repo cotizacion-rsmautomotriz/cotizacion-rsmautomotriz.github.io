@@ -123,44 +123,26 @@ def save_products():
     
     return redirect(url_for('main.dashboard'))
 
-@bp.route('/update_products', methods=['POST'])
+@app.route('/update_products', methods=['POST'])
 def update_products():
     if 'user_id' not in session:
         return redirect(url_for('main.login'))
     
     try:
         # Obtener los datos del formulario
-        names = request.form.getlist('names[]')
-        amounts = request.form.getlist('amounts[]')
+        product_names = request.form.getlist('product_name[]')
+        product_amounts = request.form.getlist('product_amount[]')
         edit_date = request.form.get('edit_date')
-        deleted_names = request.form.getlist('deleted_names[]')
         
-        # Buscar productos existentes para esa fecha
-        existing_products = Product.query.filter_by(
+        # Eliminar todos los productos existentes de esa fecha
+        Product.query.filter_by(
             user_id=session['user_id'],
             date=edit_date
-        ).all()
+        ).delete()
         
-        # Eliminar productos marcados para borrar
-        for product in existing_products:
-            if product.name in deleted_names:
-                db.session.delete(product)
-        
-        # Actualizar o agregar productos
-        for i, (name, amount) in enumerate(zip(names, amounts)):
-            # Buscar producto existente
-            existing_product = Product.query.filter_by(
-                user_id=session['user_id'],
-                date=edit_date,
-                name=name
-            ).first()
-            
-            if existing_product:
-                # Actualizar producto existente solo si ha cambiado
-                if float(existing_product.amount) != float(amount):
-                    existing_product.amount = float(amount)
-            else:
-                # Crear nuevo producto solo si no existe
+        # Agregar solo los productos que no fueron eliminados
+        for name, amount in zip(product_names, product_amounts):
+            if name.strip():  # Solo si el nombre no está vacío
                 new_product = Product(
                     name=name,
                     amount=float(amount),
@@ -173,13 +155,13 @@ def update_products():
         flash('Cambios guardados exitosamente')
         
         # Redirigir a la búsqueda con la misma fecha
-        return redirect(url_for('main.search_by_date'), code=307)
+        return redirect(url_for('main.table_page'))
         
     except Exception as e:
         print(f"Error al actualizar productos: {str(e)}")
         db.session.rollback()
         flash('Error al guardar los cambios')
-        return redirect(url_for('main.search_page'))
+        return redirect(url_for('main.table_page'))
         
 @bp.route('/table')
 def table():
