@@ -330,7 +330,7 @@ def save_current_date():
     
     return '', 200
 
-@app.route('/save_changes', methods=['POST'])
+@bp.route('/save_changes', methods=['POST'])
 def save_changes():
     if 'user_id' not in session:
         return redirect(url_for('main.login'))
