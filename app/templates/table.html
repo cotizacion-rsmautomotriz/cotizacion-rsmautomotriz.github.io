@@ -27,7 +27,7 @@
                     <tr>
                         <th>Repuesto</th>
                         <th>Monto</th>
-                        <th>Fecha</th>
+                        <th>Acciones</th>  <!-- Nueva columna de acciones -->
                     </tr>
                 </thead>
                 <tbody>
@@ -40,7 +40,8 @@
                             <input type="number" name="amounts[]" value="{{ product.amount }}" readonly class="edit-input">
                         </td>
                         <td>
-                            <input type="date" name="dates[]" value="{{ product.date }}" readonly class="edit-input">
+                            <!-- Botón de borrar, inicialmente oculto -->
+                            <button type="button" class="btn-delete" style="display: none;">Borrar</button>
                         </td>
                     </tr>
                     {% endfor %}
@@ -124,6 +125,7 @@ function toggleEdit() {
     const inputs = document.querySelectorAll('.edit-input');
     const editButton = document.querySelector('.button-edit');
     const saveButton = document.querySelector('.button-save');
+    const deleteButtons = document.querySelectorAll('.btn-delete');
     
     inputs.forEach(input => {
         input.readOnly = !input.readOnly;
@@ -133,13 +135,35 @@ function toggleEdit() {
         editButton.textContent = 'Cancelar';
         editButton.style.backgroundColor = '#dc3545';
         saveButton.style.display = 'block';
+        
+        // Mostrar botones de borrar
+        deleteButtons.forEach(btn => {
+            btn.style.display = 'block';
+        });
     } else {
         editButton.textContent = 'Editar';
         editButton.style.backgroundColor = '#ffc107';
         saveButton.style.display = 'none';
-        // Recargar la página para descartar cambios
+        
+        // Ocultar botones de borrar
+        deleteButtons.forEach(btn => {
+            btn.style.display = 'none';
+        });
+        
         location.reload();
     }
 }
+
+document.addEventListener('DOMContentLoaded', function() {
+    const table = document.querySelector('table tbody');
+    
+    table.addEventListener('click', function(event) {
+        if (event.target.classList.contains('btn-delete')) {
+            // Eliminar la fila cuando se hace clic en "Borrar"
+            event.target.closest('tr').remove();
+        }
+    });
+});    
 </script>
+
 {% endblock %}
