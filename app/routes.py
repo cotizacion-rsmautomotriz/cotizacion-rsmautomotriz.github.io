@@ -131,39 +131,35 @@ def update_products():
         return redirect(url_for('main.login'))
     
     try:
-        # Obtener los datos del formulario
-        product_names = request.form.getlist('product_name[]')
-        product_amounts = request.form.getlist('product_amount[]')
+        product_names = request.form.getlist('names[]')
+        product_amounts = request.form.getlist('amounts[]')
+        product_dates = request.form.getlist('dates[]')
         edit_date = request.form.get('edit_date')
         
-        # Eliminar todos los productos existentes de esa fecha
-        Product.query.filter_by(
-            user_id=session['user_id'],
-            date=edit_date
-        ).delete()
+        # Normalizar formato de fecha
+        date_obj = datetime.strptime(edit_date, '%Y-%m-%d')
+        formatted_date = date_obj.strftime('%Y-%m-%d')
         
-        # Agregar solo los productos que no fueron eliminados
-        for name, amount in zip(product_names, product_amounts):
-            if name.strip():  # Solo si el nombre no está vacío
-                new_product = Product(
-                    name=name,
-                    amount=float(amount),
-                    date=edit_date,
-                    user_id=session['user_id']
-                )
-                db.session.add(new_product)
+        # Eliminar productos existentes de la fecha editada
+        Product.query.filter_by(user_id=session['user_id'], date=formatted_date).delete()
+        
+        # Agregar productos actualizados
+        for name, amount, date in zip(product_names, product_amounts, product_dates):
+            new_product = Product(
+                name=name,
+                amount=float(amount),
+                date=date,
+                user_id=session['user_id']
+            )
+            db.session.add(new_product)
         
         db.session.commit()
         flash('Cambios guardados exitosamente')
-        
-        # Redirigir a la búsqueda con la misma fecha
-        return redirect(url_for('main.table_page'))
-        
+        return redirect(url_for('main.table'))
     except Exception as e:
-        print(f"Error al actualizar productos: {str(e)}")
         db.session.rollback()
         flash('Error al guardar los cambios')
-        return redirect(url_for('main.table_page'))
+        return redirect(url_for('main.table'))
     
         
 @bp.route('/table')
@@ -270,33 +266,36 @@ def search_by_date():
         return redirect(url_for('main.login'))
     
     search_date = request.form.get('search_date')
-    
     if search_date:
         try:
-            # Convertir la fecha al formato correcto para la búsqueda
+            # Convertir la fecha a un formato consistente en la base de datos (yyyy-mm-dd)
             date_obj = datetime.strptime(search_date, '%Y-%m-%d')
-            formatted_date = date_obj.strftime('%d/%m/%Y')
+            formatted_date = date_obj.strftime('%Y-%m-%d')
             
-            # Buscar productos por fecha
+            # Buscar productos en la base de datos por fecha
             products = Product.query.filter_by(
                 user_id=session['user_id'],
                 date=formatted_date
             ).all()
             
             if products:
-                saved_products = [{
-                    'id': product.id,
-                    'name': product.name,
-                    'amount': product.amount,
-                    'date': product.date
-                } for product in products]
-                
+                saved_products = [
+                    {
+                        'id': product.id,
+                        'name': product.name,
+                        'amount': product.amount,
+                        'date': product.date
+                    }
+                    for product in products
+                ]
                 total = sum(float(product['amount']) for product in saved_products)
                 
-                return render_template('import.html', 
-                                     saved_products=saved_products, 
-                                     total=total,
-                                     search_date=formatted_date)
+                return render_template(
+                    'table.html', 
+                    products=saved_products, 
+                    total=total,
+                    search_date=formatted_date
+                )
             else:
                 flash(f'No se encontraron productos para la fecha {formatted_date}')
         except Exception as e:
