@@ -269,11 +269,22 @@ def search_by_date():
     
     if search_date:
         try:
-            # Convertir la fecha al formato correcto para la búsqueda
-            date_obj = datetime.strptime(search_date, '%Y-%m-%d')
+            # Intenta analizar la fecha en múltiples formatos
+            try:
+                # Primero, intenta YYYY-MM-DD (formato de entrada de fecha HTML)
+                date_obj = datetime.strptime(search_date, '%Y-%m-%d')
+            except ValueError:
+                try:
+                    # Luego intenta DD/MM/YYYY
+                    date_obj = datetime.strptime(search_date, '%d/%m/%Y')
+                except ValueError:
+                    flash('Formato de fecha inválido')
+                    return redirect(url_for('main.table_page'))
+            
+            # Convierte a formato consistente DD/MM/YYYY
             formatted_date = date_obj.strftime('%d/%m/%Y')
             
-            # Buscar productos por fecha
+            # Busca productos por fecha
             products = Product.query.filter_by(
                 user_id=session['user_id'],
                 date=formatted_date
@@ -289,15 +300,20 @@ def search_by_date():
                 
                 total = sum(float(product['amount']) for product in saved_products)
                 
-                return render_template('import.html', 
-                                     saved_products=saved_products, 
+                return render_template('table.html', 
+                                     products=saved_products, 
                                      total=total,
                                      search_date=formatted_date)
             else:
                 flash(f'No se encontraron productos para la fecha {formatted_date}')
+                return redirect(url_for('main.table_page'))
+        
         except Exception as e:
+            print(f"Error al buscar productos: {str(e)}")
             flash('Error al buscar productos')
+            return redirect(url_for('main.table_page'))
     
+    flash('Por favor ingrese una fecha')
     return redirect(url_for('main.table_page'))
 
 @bp.route('/table_page')
