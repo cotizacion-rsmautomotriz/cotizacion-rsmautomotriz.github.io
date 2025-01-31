@@ -254,6 +254,11 @@ def delete_temp_product(index):
     
     return '', 404
 
+@bp.route('/search')
+def search_page():
+    if 'user_id' not in session:
+        return redirect(url_for('main.login'))
+    return render_template('search.html')
 
 @bp.route('/search_by_date', methods=['POST'])
 def search_by_date():
@@ -274,7 +279,7 @@ def search_by_date():
                     date_obj = datetime.strptime(search_date, '%d/%m/%Y')
                 except ValueError:
                     flash('Formato de fecha inválido')
-                    return redirect(url_for('main.table_page'))
+                    return redirect(url_for('main.search_page'))
             
             # Convierte a formato consistente DD/MM/YYYY
             formatted_date = date_obj.strftime('%d/%m/%Y')
@@ -295,21 +300,21 @@ def search_by_date():
                 
                 total = sum(float(product['amount']) for product in saved_products)
                 
-                return render_template('table.html', 
+                return render_template('search.html', 
                                      products=saved_products, 
                                      total=total,
                                      search_date=formatted_date)
             else:
                 flash(f'No se encontraron productos para la fecha {formatted_date}')
-                return redirect(url_for('main.table_page'))
+                return render_template('search.html')
         
         except Exception as e:
             print(f"Error al buscar productos: {str(e)}")
             flash('Error al buscar productos')
-            return redirect(url_for('main.table_page'))
+            return render_template('search.html')
     
     flash('Por favor ingrese una fecha')
-    return redirect(url_for('main.table_page'))
+    return render_template('search.html')
 
 @bp.route('/table_page')
 def table_page():
