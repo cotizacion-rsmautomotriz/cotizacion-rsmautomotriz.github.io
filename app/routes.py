@@ -133,6 +133,7 @@ def update_products():
         names = request.form.getlist('names[]')
         amounts = request.form.getlist('amounts[]')
         edit_date = request.form.get('edit_date')
+        deleted_names = request.form.getlist('deleted_names[]')
         
         # Buscar productos existentes para esa fecha
         existing_products = Product.query.filter_by(
@@ -140,10 +141,9 @@ def update_products():
             date=edit_date
         ).all()
         
-        # Eliminar productos que no están en el formulario
+        # Eliminar productos marcados para borrar
         for product in existing_products:
-            # Si el producto no está en los nombres recibidos, lo borramos
-            if product.name not in names:
+            if product.name in deleted_names:
                 db.session.delete(product)
         
         # Actualizar o agregar productos
@@ -156,10 +156,11 @@ def update_products():
             ).first()
             
             if existing_product:
-                # Actualizar producto existente
-                existing_product.amount = float(amount)
+                # Actualizar producto existente solo si ha cambiado
+                if float(existing_product.amount) != float(amount):
+                    existing_product.amount = float(amount)
             else:
-                # Crear nuevo producto
+                # Crear nuevo producto solo si no existe
                 new_product = Product(
                     name=name,
                     amount=float(amount),
