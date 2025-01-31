@@ -123,7 +123,7 @@ def save_products():
     
     return redirect(url_for('main.dashboard'))
 
-@app.route('/update_products', methods=['POST'])
+@bp.route('/update_products', methods=['POST'])
 def update_products():
     if 'user_id' not in session:
         return redirect(url_for('main.login'))
@@ -269,22 +269,11 @@ def search_by_date():
     
     if search_date:
         try:
-            # Intenta analizar la fecha en múltiples formatos
-            try:
-                # Primero, intenta YYYY-MM-DD (formato de entrada de fecha HTML)
-                date_obj = datetime.strptime(search_date, '%Y-%m-%d')
-            except ValueError:
-                try:
-                    # Luego intenta DD/MM/YYYY
-                    date_obj = datetime.strptime(search_date, '%d/%m/%Y')
-                except ValueError:
-                    flash('Formato de fecha inválido')
-                    return redirect(url_for('main.search_page'))
-            
-            # Convierte a formato consistente DD/MM/YYYY
+            # Convertir la fecha al formato correcto para la búsqueda
+            date_obj = datetime.strptime(search_date, '%Y-%m-%d')
             formatted_date = date_obj.strftime('%d/%m/%Y')
             
-            # Busca productos por fecha
+            # Buscar productos por fecha
             products = Product.query.filter_by(
                 user_id=session['user_id'],
                 date=formatted_date
@@ -300,21 +289,16 @@ def search_by_date():
                 
                 total = sum(float(product['amount']) for product in saved_products)
                 
-                return render_template('search.html', 
-                                     products=saved_products, 
+                return render_template('import.html', 
+                                     saved_products=saved_products, 
                                      total=total,
                                      search_date=formatted_date)
             else:
                 flash(f'No se encontraron productos para la fecha {formatted_date}')
-                return render_template('search.html')
-        
         except Exception as e:
-            print(f"Error al buscar productos: {str(e)}")
             flash('Error al buscar productos')
-            return render_template('search.html')
     
-    flash('Por favor ingrese una fecha')
-    return render_template('search.html')
+    return redirect(url_for('main.table_page'))
 
 @bp.route('/table_page')
 def table_page():
