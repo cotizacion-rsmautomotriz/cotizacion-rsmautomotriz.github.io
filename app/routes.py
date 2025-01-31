@@ -222,7 +222,6 @@ def table():
                 'id': product.id,
                 'name': product.name,
                 'amount': product.amount,
-                'date': product.date
             })
         
         # Calcular total
@@ -316,7 +315,6 @@ def table_page():
                 'id': product.id,
                 'name': product.name,
                 'amount': product.amount,
-                'date': product.date
             } for product in products
         ]
         total = sum(float(product['amount']) for product in product_list)
