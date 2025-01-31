@@ -140,8 +140,9 @@ def update_products():
         date_obj = datetime.strptime(edit_date, '%Y-%m-%d')
         formatted_date = date_obj.strftime('%Y-%m-%d')
         
-        # Eliminar productos existentes de la fecha editada
-        Product.query.filter_by(user_id=session['user_id'], date=formatted_date).delete()
+        # Verificar si hay productos antes de eliminarlos
+        if Product.query.filter_by(user_id=session['user_id'], date=formatted_date).count() > 0:
+            Product.query.filter_by(user_id=session['user_id'], date=formatted_date).delete()
         
         # Agregar productos actualizados
         for name, amount, date in zip(product_names, product_amounts, product_dates):
@@ -155,13 +156,13 @@ def update_products():
         
         db.session.commit()
         flash('Cambios guardados exitosamente')
-        return redirect(url_for('main.table'))
+        return redirect(url_for('main.table_page'))
     except Exception as e:
         db.session.rollback()
-        flash('Error al guardar los cambios')
-        return redirect(url_for('main.table'))
-    
-        
+        flash(f'Error al guardar los cambios: {str(e)}')
+        return redirect(url_for('main.table_page'))
+
+
 @bp.route('/table')
 def table():
     if 'user_id' not in session:
@@ -308,7 +309,23 @@ def search_by_date():
 def table_page():
     if 'user_id' not in session:
         return redirect(url_for('main.login'))
-    return render_template('table.html')
+    
+    try:
+        products = Product.query.filter_by(user_id=session['user_id']).all()
+        product_list = [
+            {
+                'id': product.id,
+                'name': product.name,
+                'amount': product.amount,
+                'date': product.date
+            } for product in products
+        ]
+        total = sum(float(product['amount']) for product in product_list)
+        return render_template('table.html', products=product_list, total=total)
+    except Exception as e:
+        flash(f'Error al cargar la tabla: {str(e)}')
+        return redirect(url_for('main.dashboard'))
+
 
 @bp.route('/save_current_date', methods=['POST'])
 def save_current_date():
