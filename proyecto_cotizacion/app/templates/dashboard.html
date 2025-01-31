@@ -1,0 +1,271 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+<div class="cotizacion">
+    <div class="header1">
+        <p class="text1">Ingrese sus datos</p>
+    </div>
+    <div class="container2">
+        <div class="date-container">
+            <label for="date">Fecha:</label>
+            <input type="date" id="common-date" name="date" required value="{{ session.get('current_date', '') }}">
+        </div>
+        <form id="product-form" action="/add_product" method="POST">
+            <div class="container2-a1">
+                <label for="product-name">Nombre del Repuesto:</label>
+                <input type="text" id="product-name" name="product_name" required>
+            </div>
+            <div class="container2-a2">
+                <label for="amount">Monto:</label>
+                <input type="number" id="amount" name="amount" required>
+            </div>
+            <div class="button-group">
+                <button type="submit" class="button button-primary">Agregar Producto</button>
+                <button type="button" class="button button-clear" onclick="clearTemporaryTable()">Clear</button>
+            </div>
+        </form>
+    </div>
+    
+    <div class="container3">
+        {% if products %}
+        <table id="products-table">
+            <thead>
+                <tr>
+                    <th>Repuesto</th>
+                    <th>Monto</th>
+                    <th>Acción</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for product in products %}
+                <tr>
+                    <td>{{ product.name }}</td>
+                    <td>${{ product.amount }}</td>
+                    <td>
+                        <button type="button" class="button-delete" onclick="deleteRow({{ loop.index0 }})">Borrar</button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        <div class="total">
+            <strong>Total:</strong> ${{ total }}
+        </div>
+        {% endif %}
+    </div>
+    <div class="container4">
+        <form action="/save_products" method="POST">
+            <button type="submit" class="button button-tree">Guardar</button>
+        </form>
+        <form action="/table_page" method="GET">
+            <button type="submit" class="button button-tree">Ingreso</button>
+        </form>
+    </div>
+    
+    <style>
+    /* ... otros estilos existentes ... */
+    
+    .button-delete {
+        background-color: #dc3545;
+        color: white;
+        padding: 5px 10px;
+        border: none;
+        border-radius: 3px;
+        cursor: pointer;
+        font-size: 0.9em;
+    }
+
+    .container4 {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        margin-top: 20px;
+    }
+    
+    .container4 form {
+        margin: 0 5px;  /* Esto agrega margen a ambos lados de cada form */
+    }
+    
+    .button-delete:hover {
+        background-color: #c82333;
+    }
+
+    .date-container {
+        margin-bottom: 20px;
+        padding: 15px;
+        background-color: #f8f9fa;
+        border-radius: 5px;
+    }
+    
+    .date-container label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: bold;
+    }
+    
+    .date-container input[type="date"] {
+        width: 200px;
+        padding: 8px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+    }
+    
+    </style>
+
+    
+    
+    <script>
+    // ... script existente de clearTemporaryTable ...
+    
+    function deleteRow(index) {
+        fetch('/delete_temp_product/' + index, {
+            method: 'POST',
+        })
+        .then(response => {
+            if (response.ok) {
+                window.location.reload();
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+        });
+    }
+    </script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const dateInput = document.querySelector('input[type="date"]');
+            
+            // Usar la fecha guardada en la sesión o la fecha actual
+            const savedDate = '{{ session.get("current_date", "") }}';
+            if (savedDate) {
+                dateInput.value = savedDate;
+            } else {
+                const today = new Date().toISOString().split('T')[0];
+                dateInput.value = today;
+            }
+            
+            // Enviar la fecha al servidor cuando cambie
+            dateInput.addEventListener('change', function() {
+                fetch('/save_current_date', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ date: this.value })
+                });
+            });
+        });
+        </script>
+    <script>
+        function clearTemporaryTable() {
+            fetch('/clear_temp_table', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                credentials: 'same-origin'
+            })
+            .then(response => {
+                if (response.ok) {
+                    location.reload();
+                }
+            })
+            .catch(error => console.error('Error:', error));
+        }
+        </script>
+        <script>
+            document.getElementById('product-form').onsubmit = function(e) {
+                e.preventDefault();
+                const date = document.getElementById('common-date').value;
+                if (!date) {
+                    alert('Por favor seleccione una fecha');
+                    return false;
+                }
+                
+                const formData = new FormData(this);
+                formData.append('date', date);
+                
+                fetch('/add_product', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => {
+                    if (response.ok) {
+                        // Solo limpiamos los campos de producto y monto
+                        document.getElementById('product-name').value = '';
+                        document.getElementById('amount').value = '';
+                        // Recargamos la página manteniendo el foco en el campo de producto
+                        window.location.reload();
+                        setTimeout(() => {
+                            document.getElementById('product-name').focus();
+                        }, 100);
+                    }
+                });
+            };
+            
+            // Guardar la fecha cuando cambia
+            document.getElementById('common-date').addEventListener('change', function() {
+                fetch('/save_current_date', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({date: this.value})
+                });
+            });
+            </script>
+<script>
+    document.getElementById('product-form').onsubmit = function(e) {
+        e.preventDefault();
+        const date = document.getElementById('common-date').value;
+        if (!date) {
+            alert('Por favor seleccione una fecha');
+            return false;
+        }
+        
+        const formData = new FormData(this);
+        formData.append('date', date);
+        
+        fetch('/add_product', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => {
+            if (response.ok) {
+                window.location.reload();
+            }
+        });
+    };
+    
+    function clearTemporaryTable() {
+        fetch('/clear_temp_table', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            credentials: 'same-origin'
+        })
+        .then(response => {
+            if (response.ok) {
+                location.reload();
+            }
+        })
+        .catch(error => console.error('Error:', error));
+    }
+    
+    function deleteRow(index) {
+        fetch('/delete_temp_product/' + index, {
+            method: 'POST',
+        })
+        .then(response => {
+            if (response.ok) {
+                window.location.reload();
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+        });
+    }
+    </script>
+
+{% endblock %}
