@@ -71,7 +71,7 @@ def dashboard():
 @bp.route('/add_product', methods=['POST'])
 def add_product():
     if 'user_id' not in session:
-        return redirect(url_for('login'))
+        return redirect(url_for('main.login'))
     
     product_name = request.form.get('product_name')
     amount = request.form.get('amount')
@@ -97,10 +97,11 @@ def add_product():
     
     return redirect(url_for('main.dashboard'))
 
+
 @bp.route('/save_products', methods=['POST'])
 def save_products():
     if 'user_id' not in session:
-        return redirect(url_for('login'))
+        return redirect(url_for('main.login'))
     
     if 'temp_products' in session and session['temp_products']:
         try:
@@ -122,6 +123,7 @@ def save_products():
             flash('Error al guardar los productos', 'error')
     
     return redirect(url_for('main.dashboard'))
+
 
 @bp.route('/update_products', methods=['POST'])
 def update_products():
@@ -162,6 +164,7 @@ def update_products():
         db.session.rollback()
         flash('Error al guardar los cambios')
         return redirect(url_for('main.table_page'))
+    
         
 @bp.route('/table')
 def table():
@@ -192,6 +195,7 @@ def table():
         print(f"Error en tabla: {str(e)}")  # Para debugging
         flash('Error al cargar los productos')
         return redirect(url_for('main.dashboard'))
+
 
 @bp.route('/import')
 def import_page():
@@ -269,22 +273,11 @@ def search_by_date():
     
     if search_date:
         try:
-            # Intenta analizar la fecha en múltiples formatos
-            try:
-                # Primero, intenta YYYY-MM-DD (formato de entrada de fecha HTML)
-                date_obj = datetime.strptime(search_date, '%Y-%m-%d')
-            except ValueError:
-                try:
-                    # Luego intenta DD/MM/YYYY
-                    date_obj = datetime.strptime(search_date, '%d/%m/%Y')
-                except ValueError:
-                    flash('Formato de fecha inválido')
-                    return redirect(url_for('main.table_page'))
-            
-            # Convierte a formato consistente DD/MM/YYYY
+            # Convertir la fecha al formato correcto para la búsqueda
+            date_obj = datetime.strptime(search_date, '%Y-%m-%d')
             formatted_date = date_obj.strftime('%d/%m/%Y')
             
-            # Busca productos por fecha
+            # Buscar productos por fecha
             products = Product.query.filter_by(
                 user_id=session['user_id'],
                 date=formatted_date
@@ -300,51 +293,23 @@ def search_by_date():
                 
                 total = sum(float(product['amount']) for product in saved_products)
                 
-                return render_template('table.html', 
-                                     products=saved_products, 
+                return render_template('import.html', 
+                                     saved_products=saved_products, 
                                      total=total,
                                      search_date=formatted_date)
             else:
                 flash(f'No se encontraron productos para la fecha {formatted_date}')
-                return redirect(url_for('main.table_page'))
-        
         except Exception as e:
-            print(f"Error al buscar productos: {str(e)}")
             flash('Error al buscar productos')
-            return redirect(url_for('main.table_page'))
     
-    flash('Por favor ingrese una fecha')
     return redirect(url_for('main.table_page'))
+
 
 @bp.route('/table_page')
 def table_page():
     if 'user_id' not in session:
         return redirect(url_for('main.login'))
-    
-    try:
-        # Obtener productos guardados del usuario actual
-        products = Product.query.filter_by(user_id=session['user_id']).all()
-        
-        # Convertir productos a formato para mostrar
-        product_list = []
-        for product in products:
-            product_list.append({
-                'name': product.name,
-                'amount': product.amount,
-                'date': product.date
-            })
-        
-        # Calcular total
-        total = sum(float(product['amount']) for product in product_list)
-        
-        return render_template('table.html', 
-                               products=product_list, 
-                               total=total,
-                               search_date=None)  # Añade esta línea
-    except Exception as e:
-        print(f"Error en tabla: {str(e)}")
-        flash('Error al cargar los productos')
-        return redirect(url_for('main.dashboard'))
+    return render_template('table.html')
 
 @bp.route('/save_current_date', methods=['POST'])
 def save_current_date():
@@ -365,7 +330,7 @@ def save_current_date():
     
     return '', 200
 
-@bp.route('/save_changes', methods=['POST'])
+@app.route('/save_changes', methods=['POST'])
 def save_changes():
     if 'user_id' not in session:
         return redirect(url_for('main.login'))
@@ -395,7 +360,7 @@ def save_changes():
         db.session.rollback()
         flash('Error al actualizar los productos', 'error')
     
-    return redirect(url_for('main.search_by_date'), code=307)
+    return redirect(url_for('search_by_date'), code=307)
 
 @bp.route('/logout')
 def logout():
