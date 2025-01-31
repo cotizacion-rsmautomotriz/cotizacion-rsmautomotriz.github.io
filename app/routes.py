@@ -125,6 +125,49 @@ def save_products():
     return redirect(url_for('main.dashboard'))
 
 
+@bp.route('/search_by_date', methods=['POST'])
+def search_by_date():
+    if 'user_id' not in session:
+        return redirect(url_for('main.login'))
+    
+    search_date = request.form.get('search_date')
+    if search_date:
+        try:
+            # Convertir la fecha a un formato consistente en la base de datos (yyyy-mm-dd)
+            date_obj = datetime.strptime(search_date, '%Y-%m-%d')
+            formatted_date = date_obj.strftime('%Y-%m-%d')
+            
+            # Buscar productos en la base de datos por fecha
+            products = Product.query.filter_by(
+                user_id=session['user_id'],
+                date=formatted_date
+            ).all()
+            
+            if products:
+                saved_products = [
+                    {
+                        'id': product.id,
+                        'name': product.name,
+                        'amount': product.amount,
+                        'date': product.date
+                    }
+                    for product in products
+                ]
+                total = sum(float(product['amount']) for product in saved_products)
+                
+                return render_template(
+                    'table.html', 
+                    products=saved_products, 
+                    total=total,
+                    search_date=formatted_date
+                )
+            else:
+                flash(f'No se encontraron productos para la fecha {formatted_date}')
+        except Exception as e:
+            flash('Error al buscar productos')
+    
+    return redirect(url_for('main.table_page'))
+
 @bp.route('/update_products', methods=['POST'])
 def update_products():
     if 'user_id' not in session:
@@ -261,51 +304,7 @@ def search_page():
         return redirect(url_for('main.login'))
     return render_template('search.html')
 
-@bp.route('/search_by_date', methods=['POST'])
-def search_by_date():
-    if 'user_id' not in session:
-        return redirect(url_for('main.login'))
-    
-    search_date = request.form.get('search_date')
-    if search_date:
-        try:
-            # Convertir la fecha a un formato consistente en la base de datos (yyyy-mm-dd)
-            date_obj = datetime.strptime(search_date, '%Y-%m-%d')
-            formatted_date = date_obj.strftime('%Y-%m-%d')
-            
-            # Buscar productos en la base de datos por fecha
-            products = Product.query.filter_by(
-                user_id=session['user_id'],
-                date=formatted_date
-            ).all()
-            
-            if products:
-                saved_products = [
-                    {
-                        'id': product.id,
-                        'name': product.name,
-                        'amount': product.amount,
-                        'date': product.date
-                    }
-                    for product in products
-                ]
-                total = sum(float(product['amount']) for product in saved_products)
-                
-                return render_template(
-                    'table.html', 
-                    products=saved_products, 
-                    total=total,
-                    search_date=formatted_date
-                )
-            else:
-                flash(f'No se encontraron productos para la fecha {formatted_date}')
-        except Exception as e:
-            flash('Error al buscar productos')
-    
-    return redirect(url_for('main.table_page'))
-
-
-@bp.route('/table_page')
+@bp.route('/table_page', methods=['GET', 'POST'])
 def table_page():
     if 'user_id' not in session:
         return redirect(url_for('main.login'))
@@ -325,7 +324,6 @@ def table_page():
     except Exception as e:
         flash(f'Error al cargar la tabla: {str(e)}')
         return redirect(url_for('main.dashboard'))
-
 
 @bp.route('/save_current_date', methods=['POST'])
 def save_current_date():
