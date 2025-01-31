@@ -179,6 +179,7 @@ def update_products():
         db.session.rollback()
         flash('Error al guardar los cambios')
         return redirect(url_for('main.search_page'))
+        
 @bp.route('/table')
 def table():
     if 'user_id' not in session:
