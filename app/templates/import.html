@@ -42,7 +42,7 @@
             <div class="button-container">
                 <button type="button" class="button button-edit" onclick="toggleEdit()">Editar</button>
                 <button type="submit" class="button button-save" style="display: none;">Guardar Cambios</button>
-                <a href="{{ url_for('main.table_page') }}" class="button button-back">Volver</a>
+                <a href="{{ url_for('table_page') }}" class="button button-back">Volver</a>
                 <button type="button" class="button button-share" onclick="shareData()">
                     <i class="fas fa-share-alt"></i> Compartir
                 </button>
@@ -70,7 +70,7 @@
 </div>
 <div id="imageContainer" style="display: none; background: white; padding: 20px; border-radius: 10px;">
     <div style="display: flex; align-items: center; margin-bottom: 20px;">
-        <img src="{{ url_for('main.static', filename='logorsmautomotriz.png') }}" 
+        <img src="{{ url_for('static', filename='logorsmautomotriz.png') }}" 
              alt="RSM Automotriz" 
              style="width: 195px; height: auto; margin-right: 45px;">
         <h2 class="image-title" style="color: #000; margin: 0 0 0 5px; flex-grow: 1; text-align: center; font-weight: bold;"></h2>
