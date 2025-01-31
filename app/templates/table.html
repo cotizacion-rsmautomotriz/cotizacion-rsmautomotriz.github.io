@@ -57,6 +57,12 @@
     </div>
     {% endif %}
 
+    {% if search_date %}
+    <div class="alert alert-info">
+        Resultados para la fecha: {{ search_date }}
+    </div>
+    {% endif %}
+
     {% with messages = get_flashed_messages() %}
         {% if messages %}
             {% for message in messages %}
