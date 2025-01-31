@@ -130,19 +130,36 @@ def update_products():
     
     try:
         # Obtener los datos del formulario
-        product_names = request.form.getlist('product_name[]')
-        product_amounts = request.form.getlist('product_amount[]')
+        names = request.form.getlist('names[]')
+        amounts = request.form.getlist('amounts[]')
         edit_date = request.form.get('edit_date')
         
-        # Eliminar todos los productos existentes de esa fecha
-        Product.query.filter_by(
+        # Buscar productos existentes para esa fecha
+        existing_products = Product.query.filter_by(
             user_id=session['user_id'],
             date=edit_date
-        ).delete()
+        ).all()
         
-        # Agregar solo los productos que no fueron eliminados
-        for name, amount in zip(product_names, product_amounts):
-            if name.strip():  # Solo si el nombre no está vacío
+        # Eliminar productos que no están en el formulario
+        for product in existing_products:
+            # Si el producto no está en los nombres recibidos, lo borramos
+            if product.name not in names:
+                db.session.delete(product)
+        
+        # Actualizar o agregar productos
+        for i, (name, amount) in enumerate(zip(names, amounts)):
+            # Buscar producto existente
+            existing_product = Product.query.filter_by(
+                user_id=session['user_id'],
+                date=edit_date,
+                name=name
+            ).first()
+            
+            if existing_product:
+                # Actualizar producto existente
+                existing_product.amount = float(amount)
+            else:
+                # Crear nuevo producto
                 new_product = Product(
                     name=name,
                     amount=float(amount),
@@ -155,14 +172,13 @@ def update_products():
         flash('Cambios guardados exitosamente')
         
         # Redirigir a la búsqueda con la misma fecha
-        return redirect(url_for('main.table_page'))
+        return redirect(url_for('main.search_by_date'), code=307)
         
     except Exception as e:
         print(f"Error al actualizar productos: {str(e)}")
         db.session.rollback()
         flash('Error al guardar los cambios')
-        return redirect(url_for('main.table_page'))
-    
+        return redirect(url_for('main.search_page'))
 @bp.route('/table')
 def table():
     if 'user_id' not in session:
