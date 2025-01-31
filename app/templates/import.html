@@ -1,0 +1,480 @@
+{% extends "base.html" %}
+{% block title %}Productos Guardados{% endblock %}
+{% block content %}
+<div class="cotizacion">
+    <div class="header1">
+        {% if search_date %}
+            <p class="text1">Repuestos del día {{ search_date }}</p>
+        {% else %}
+            <p class="text1">Repuestos Guardados</p>
+        {% endif %}
+    </div>
+    <div class="container3">
+        <form action="/update_products" method="POST" id="edit-form">
+            <input type="hidden" name="edit_date" value="{{ search_date }}">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Nombre del Repuesto</th>
+                        <th>Monto</th>
+                        <th class="action-column" style="display: none;">Acción</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for product in saved_products %}
+                    <tr>
+                        <td>
+                            <input type="text" name="product_name[]" value="{{ product.name }}" readonly class="edit-input">
+                        </td>
+                        <td>
+                            <input type="number" name="product_amount[]" value="{{ product.amount }}" readonly class="edit-input">
+                        </td>
+                        <td class="action-cell" style="display: none;">
+                            <button type="button" class="button-delete" onclick="deleteRow(this)">Borrar</button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            <div class="total">
+                <strong>Total:</strong> ${{ total }}
+            </div>
+            <div class="button-container">
+                <button type="button" class="button button-edit" onclick="toggleEdit()">Editar</button>
+                <button type="submit" class="button button-save" style="display: none;">Guardar Cambios</button>
+                <a href="{{ url_for('main.table_page') }}" class="button button-back">Volver</a>
+                <button type="button" class="button button-share" onclick="shareData()">
+                    <i class="fas fa-share-alt"></i> Compartir
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+<div class="modal-overlay" id="modalOverlay"></div>
+<div class="share-modal" id="shareModal">
+    <h3>Compartir datos</h3>
+    <div class="share-options">
+        <div class="share-option" onclick="shareViaWhatsApp()">
+            <i class="fab fa-whatsapp"></i>
+            <span>WhatsApp</span>
+        </div>
+        <div class="share-option" onclick="shareViaEmail()">
+            <i class="fas fa-envelope"></i>
+            <span>Email</span>
+        </div>
+        <div class="share-option" onclick="downloadImage()">
+            <i class="fas fa-image"></i>
+            <span>Descargar Imagen</span>
+        </div>
+    </div>
+</div>
+<div id="imageContainer" style="display: none; background: white; padding: 20px; border-radius: 10px;">
+    <div style="display: flex; align-items: center; margin-bottom: 20px;">
+        <img src="{{ url_for('main.static', filename='logorsmautomotriz.png') }}" 
+             alt="RSM Automotriz" 
+             style="width: 195px; height: auto; margin-right: 45px;">
+        <h2 class="image-title" style="color: #000; margin: 0 0 0 5px; flex-grow: 1; text-align: center; font-weight: bold;"></h2>
+    </div>
+    <table class="image-table" style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+    </table>
+    <div class="image-total" style="font-weight: bold; font-size: 1.2em; color: #000;"></div>
+</div>
+
+<script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+
+<!-- Agregar en el head -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+<script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+
+<<script>
+    function shareData() {
+        const modal = document.getElementById('shareModal');
+        const overlay = document.getElementById('modalOverlay');
+        modal.style.display = 'block';
+        overlay.style.display = 'block';
+    }
+    
+    function closeModal() {
+        const modal = document.getElementById('shareModal');
+        const overlay = document.getElementById('modalOverlay');
+        modal.style.display = 'none';
+        overlay.style.display = 'none';
+    }
+    
+    function generateImage() {
+        // Preparar el contenedor para la imagen
+        const container = document.getElementById('imageContainer');
+        const title = container.querySelector('.image-title');
+        const table = container.querySelector('.image-table');
+        const totalDiv = container.querySelector('.image-total');
+        
+        return new Promise((resolve) => {
+            const logo = container.querySelector('img');
+            
+            function onLogoLoad() {
+                // Modificar el título para que muestre "Repuestos RSM" en lugar de "Productos del día"
+                const originalDate = document.querySelector('.text1').textContent.split(' ').pop();
+                title.textContent = `Repuestos RSM ${originalDate}`;
+                
+                
+                // Crear la tabla para la imagen con los nuevos colores
+                let tableHTML = `
+                    <tr>
+                        <th style="padding: 12px; border: 1px solid #000; text-align: left; background-color: #2153d3; color: white; font-weight: bold;">Repuesto</th>
+                        <th style="padding: 12px; border: 1px solid #000; text-align: left; background-color: #2153d3; color: white; font-weight: bold;">Monto</th>
+                    </tr>
+                `;
+                
+                // Copiar los datos de la tabla original
+                const originalRows = document.querySelectorAll('tbody tr');
+                originalRows.forEach(row => {
+                    const inputs = row.querySelectorAll('input');
+                    tableHTML += `
+                        <tr>
+                            <td style="padding: 12px; border: 1px solid #000; color: #000; font-weight: bold;">${inputs[0].value}</td>
+                            <td style="padding: 12px; border: 1px solid #000; color: #000; font-weight: bold;">$${inputs[1].value}</td>
+                        </tr>
+                    `;
+                });
+                
+                table.innerHTML = tableHTML;
+                
+                // Copiar el total
+                totalDiv.textContent = document.querySelector('.total').textContent;
+                
+                // Mostrar temporalmente el contenedor
+                container.style.display = 'block';
+                
+                // Generar la imagen
+                html2canvas(container, {
+                    backgroundColor: 'white',
+                    scale: 2,
+                    useCORS: true,
+                    allowTaint: true,
+                    logging: true,
+                }).then(canvas => {
+                    container.style.display = 'none';
+                    resolve(canvas);
+                });
+            }
+
+            if (logo.complete) {
+                onLogoLoad();
+            } else {
+                logo.onload = onLogoLoad;
+            }
+        });
+    }
+    
+    
+async function downloadImage() {
+    try {
+        const canvas = await generateImage();
+        const link = document.createElement('a');
+        link.download = 'productos.png';
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+        closeModal();
+    } catch (error) {
+        console.error('Error al generar la imagen:', error);
+        alert('Error al generar la imagen');
+    }
+}
+
+    
+async function shareViaWhatsApp() {
+    try {
+        const canvas = await generateImage();
+        canvas.toBlob(async (blob) => {
+            try {
+                const file = new File([blob], "productos.png", { type: "image/png" });
+                const filesArray = [file];
+                
+                if (navigator.share && navigator.canShare({ files: filesArray })) {
+                    await navigator.share({
+                        files: filesArray,
+                        title: 'Productos',
+                    });
+                } else {
+                    // Fallback para navegadores que no soportan compartir archivos
+                    const imageUrl = canvas.toDataURL('image/png');
+                    window.open(`https://wa.me/?text=${encodeURIComponent('Productos')}`, '_blank');
+                }
+                closeModal();
+            } catch (error) {
+                console.error('Error al compartir:', error);
+                alert('Error al compartir la imagen');
+            }
+        });
+    } catch (error) {
+        console.error('Error al generar la imagen:', error);
+        alert('Error al generar la imagen');
+    }
+}
+async function shareViaEmail() {
+    try {
+        const canvas = await generateImage();
+        const imageData = canvas.toDataURL('image/png');
+        const emailBody = `Productos adjuntos en la imagen.`;
+        const mailtoLink = `mailto:?subject=Productos&body=${encodeURIComponent(emailBody)}`;
+        window.location.href = mailtoLink;
+        closeModal();
+    } catch (error) {
+        console.error('Error al generar la imagen:', error);
+        alert('Error al generar la imagen');
+    }
+}
+    // Cerrar modal al hacer clic fuera
+    document.getElementById('modalOverlay').onclick = closeModal;
+    </script>
+<style>
+    #imageContainer {
+        font-family: Arial, sans-serif;
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 30px;
+        color: #000;
+        font-weight: bold;
+    }
+
+    .image-title {
+        text-align: center;
+        color: #000;
+        margin: 0 0 0 5px;
+        flex-grow: 1;
+        font-weight: bold;
+        padding-right: 195px; /* Ajustado para compensar el nuevo tamaño del logo */
+    }
+    
+    .image-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 20px;
+    }
+    
+    .image-table th {
+        background-color: #2153d3 !important;
+        color: white !important;
+        font-weight: bold;
+    }
+    .image-table td {
+        padding: 12px;
+        border: 1px solid #000;
+        color: #000;
+        font-weight: bold;
+    }
+    
+    .image-table th {
+        background-color: #f8f9fa;
+        color: #000;
+        font-weight: bold;
+    }
+    
+    .image-total {
+        text-align: right;
+        font-weight: bold;
+        font-size: 1.2em;
+        color: #000;
+    }
+.edit-input {
+    border: none;
+    background: transparent;
+    width: 100%;
+    padding: 5px;
+}
+
+.edit-input:read-only {
+    border: none;
+}
+
+.edit-input:not(:read-only) {
+    border: 1px solid #ddd;
+    background: white;
+}
+
+.button-container {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+.button {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.button-edit {
+    background-color: #ffc107;
+    color: black;
+}
+
+.button-save {
+    background-color: #28a745;
+    color: white;
+}
+
+.button-back {
+    background-color: #6c757d;
+    color: white;
+    text-decoration: none;
+}
+
+.button-edit:hover {
+    background-color: #e0a800;
+}
+
+.button-save:hover {
+    background-color: #218838;
+}
+
+.button-back:hover {
+    background-color: #5a6268;
+}
+
+button-share {
+    background-color: #4267B2;
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.button-share:hover {
+    background-color: #365899;
+}
+
+.share-modal {
+    display: none;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    z-index: 1000;
+}
+
+.share-options {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-top: 15px;
+}
+
+.share-option {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 10px;
+    cursor: pointer;
+    border-radius: 5px;
+    transition: background-color 0.3s;
+}
+
+.share-option:hover {
+    background-color: #f0f0f0;
+}
+
+.modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 999;
+}
+
+.button-delete {
+    background-color: #dc3545;
+    color: white;
+    padding: 5px 10px;
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 0.9em;
+}
+
+.button-delete:hover {
+    background-color: #c82333;
+}
+
+.action-column, .action-cell {
+    width: 100px;
+    text-align: center;
+}
+</style>
+
+<script>
+    function toggleEdit() {
+        const inputs = document.querySelectorAll('.edit-input');
+        const editButton = document.querySelector('.button-edit');
+        const saveButton = document.querySelector('.button-save');
+        const actionCells = document.querySelectorAll('.action-cell');
+        const actionColumn = document.querySelector('.action-column');
+        
+        inputs.forEach(input => {
+            input.readOnly = !input.readOnly;
+        });
+        
+        if (editButton.textContent === 'Editar') {
+            editButton.textContent = 'Cancelar';
+            editButton.style.backgroundColor = '#dc3545';
+            saveButton.style.display = 'block';
+            actionColumn.style.display = 'table-cell';
+            actionCells.forEach(cell => {
+                cell.style.display = 'table-cell';
+            });
+        } else {
+            editButton.textContent = 'Editar';
+            editButton.style.backgroundColor = '#ffc107';
+            saveButton.style.display = 'none';
+            actionColumn.style.display = 'none';
+            actionCells.forEach(cell => {
+                cell.style.display = 'none';
+            });
+            location.reload();  // Elimina esta línea
+        }
+    }
+    
+    function deleteRow(button) {
+        const row = button.closest('tr');
+        row.remove();  // Esto elimina la fila de la tabla
+    }
+    
+    
+    function updateTotal() {
+        const amounts = Array.from(document.getElementsByName('amounts[]'))
+            .map(input => parseFloat(input.value) || 0);
+        const total = amounts.reduce((sum, amount) => sum + amount, 0);
+        document.querySelector('.total strong').nextSibling.textContent = ` $${total.toFixed(2)}`;
+    }
+    
+    // ... resto del código JavaScript existente ...
+    </script>
+    <script>
+        function deleteRow(button) {
+            const row = button.closest('tr');
+            row.remove();
+            updateTotal();
+        }
+        
+        function updateTotal() {
+            const amounts = Array.from(document.getElementsByName('amounts[]'))
+                .map(input => parseFloat(input.value) || 0);
+            const total = amounts.reduce((sum, amount) => sum + amount, 0);
+            document.querySelector('.total strong').nextSibling.textContent = ` $${total.toFixed(2)}`;
+        }
+        </script>    
+{% endblock %}
