@@ -309,24 +309,47 @@ def search_page():
         return redirect(url_for('main.login'))
     return render_template('search.html')
 
-@bp.route('/table_page', methods=['GET', 'POST'])
+@bp.route('/table_page')
 def table_page():
     if 'user_id' not in session:
         return redirect(url_for('main.login'))
     
+    # Esta ruta ahora solo muestra los datos del día actual o permite buscar por fecha
+    return render_template('table.html')
+
+@bp.route('/all_records')
+def all_records():
+    if 'user_id' not in session:
+        return redirect(url_for('main.login'))
+    
     try:
-        products = Product.query.filter_by(user_id=session['user_id']).all()
-        product_list = [
-            {
+        # Obtener todos los productos ordenados por fecha
+        products = Product.query.filter_by(user_id=session['user_id']).order_by(Product.date.desc()).all()
+        
+        # Agrupar productos por fecha
+        grouped_products = {}
+        for product in products:
+            # Convertir fecha al formato deseado para mostrar
+            date_obj = datetime.strptime(product.date, '%Y-%m-%d')
+            formatted_date = date_obj.strftime('%d/%m/%Y')
+            
+            if formatted_date not in grouped_products:
+                grouped_products[formatted_date] = {
+                    'products': [],
+                    'total': 0
+                }
+            
+            grouped_products[formatted_date]['products'].append({
                 'id': product.id,
                 'name': product.name,
-                'amount': product.amount,
-            } for product in products
-        ]
-        total = sum(float(product['amount']) for product in product_list)
-        return render_template('table.html', products=product_list, total=total)
+                'amount': product.amount
+            })
+            grouped_products[formatted_date]['total'] += float(product.amount)
+        
+        return render_template('all_records.html', grouped_products=grouped_products)
+    
     except Exception as e:
-        flash(f'Error al cargar la tabla: {str(e)}')
+        flash('Error al cargar los registros')
         return redirect(url_for('main.dashboard'))
 
 @bp.route('/save_current_date', methods=['POST'])
