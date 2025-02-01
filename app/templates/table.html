@@ -1,48 +1,59 @@
-{# templates/table.html #}
 {% extends "base.html" %}
 {% block title %}Búsqueda por Fecha{% endblock %}
-
 {% block content %}
 <div class="cotizacion">
     <div class="container2">
-        <form action="{{ url_for('main.search_by_date') }}" method="POST">
+        <form action="/search_by_date" method="POST">
             <div class="container2-a3">
                 <label for="date">Ingrese la Fecha:</label>
                 <input type="date" id="date" name="search_date" required>
             </div>
             <div class="container4">
-                <button type="submit" class="button button-tree">Buscar</button>
-                <a href="{{ url_for('main.all_records') }}" class="button button-view">Ver Todos los Registros</a>
+                <button type="submit" class="button button-tree">Cargar</button>
                 <a href="{{ url_for('main.dashboard') }}" class="button button-back">Volver</a>
             </div>
         </form>
     </div>
+</div>
+
 
     {% if products %}
     <div class="container3">
         <h2>Repuestos del día {{ search_date }}</h2>
-        <table>
-            <thead>
-                <tr>
-                    <th>Repuesto</th>
-                    <th>Monto</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for product in products %}
-                <tr>
-                    <td>{{ product.name }}</td>
-                    <td>${{ "%.2f"|format(product.amount) }}</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-            <tfoot>
-                <tr class="total-row">
-                    <td><strong>Total</strong></td>
-                    <td><strong>${{ "%.2f"|format(total) }}</strong></td>
-                </tr>
-            </tfoot>
-        </table>
+        <form action="/update_products" method="POST" id="edit-form">
+            <input type="hidden" name="edit_date" value="{{ search_date }}">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Repuesto</th>
+                        <th>Monto</th>
+                        <th>Fecha</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for product in products %}
+                    <tr>
+                        <td>
+                            <input type="text" name="names[]" value="{{ product.name }}" readonly class="edit-input">
+                        </td>
+                        <td>
+                            <input type="number" name="amounts[]" value="{{ product.amount }}" readonly class="edit-input">
+                        </td>
+                        <td>
+                            <input type="date" name="dates[]" value="{{ product.date }}" readonly class="edit-input">
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            <div class="button-container">
+                <button type="button" class="button button-edit" onclick="toggleEdit()">Editar</button>
+                <button type="submit" class="button button-save" style="display: none;">Guardar Cambios</button>
+            </div>
+        </form>
+        <div class="total">
+            <strong>Total:</strong> ${{ total }}
+        </div>
     </div>
     {% endif %}
 
@@ -55,102 +66,50 @@
     {% endwith %}
 </div>
 
-
 <style>
-.button-view {
+/* ... estilos existentes ... */
+
+.edit-input {
+    border: none;
+    background: transparent;
+    width: 100%;
+    padding: 5px;
+}
+
+.edit-input:read-only {
+    border: none;
+}
+
+.edit-input:not(:read-only) {
+    border: 1px solid #ddd;
+    background: white;
+}
+
+.button-edit {
+    background-color: #ffc107;
+    color: black;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    margin-top: 20px;
+}
+
+.button-save {
     background-color: #28a745;
     color: white;
-}
-
-.button-tree {
-    background-color: #007bff;
-    color: white;
-}
-
-.container2 {
-    max-width: 800px;
-    margin: 20px auto;
-    padding: 20px;
-    background-color: #fff;
-    border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
-
-.container3 {
-    max-width: 800px;
-    margin: 20px auto;
-    padding: 20px;
-    background-color: #fff;
-    border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
-
-.date-header {
-    color: #2c3e50;
-    margin-bottom: 15px;
-    padding-bottom: 10px;
-    border-bottom: 2px solid #eee;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    margin-top: 20px;
+    margin-left: 10px;
 }
 
 .button-container {
-    margin-top: 20px;
     display: flex;
     gap: 10px;
-}
-
-.button {
-    padding: 10px 20px;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    font-weight: bold;
-    text-decoration: none;
-    display: inline-block;
-}
-
-.button-search {
-    background-color: #007bff;
-    color: white;
-}
-
-.button-back {
-    background-color: #6c757d;
-    color: white;
-}
-
-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-bottom: 10px;
-}
-
-th, td {
-    padding: 12px;
-    text-align: left;
-    border-bottom: 1px solid #ddd;
-}
-
-th {
-    background-color: #f5f5f5;
-    font-weight: bold;
-}
-
-.total-row {
-    background-color: #f8f9fa;
-}
-
-.total-row td {
-    border-top: 2px solid #dee2e6;
-}
-
-.alert {
-    padding: 12px;
-    margin: 20px auto;
-    max-width: 800px;
-    border-radius: 4px;
-    background-color: #f8d7da;
-    color: #721c24;
-    border: 1px solid #f5c6cb;
+    margin-top: 20px;
 }
 </style>
 
@@ -172,8 +131,10 @@ function toggleEdit() {
         editButton.textContent = 'Editar';
         editButton.style.backgroundColor = '#ffc107';
         saveButton.style.display = 'none';
+        // Recargar la página para descartar cambios
         location.reload();
     }
 }
 </script>
 {% endblock %}
+
