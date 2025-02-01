@@ -133,7 +133,7 @@ def search_by_date():
     search_date = request.form.get('search_date')
     if search_date:
         try:
-            # Convertir la fecha a un formato consistente en la base de datos (yyyy-mm-dd)
+            # Convertir la fecha a un formato consistente
             date_obj = datetime.strptime(search_date, '%Y-%m-%d')
             formatted_date = date_obj.strftime('%Y-%m-%d')
             
@@ -143,13 +143,14 @@ def search_by_date():
                 date=formatted_date
             ).all()
             
+            # Preparar los datos para la plantilla
             if products:
                 saved_products = [
                     {
                         'id': product.id,
                         'name': product.name,
                         'amount': product.amount,
-                        'date': product.date
+                        'date': formatted_date
                     }
                     for product in products
                 ]
@@ -163,11 +164,12 @@ def search_by_date():
                 )
             else:
                 flash(f'No se encontraron productos para la fecha {formatted_date}')
+                return render_template('table.html', products=[], total=0, search_date=formatted_date)
         except Exception as e:
-            flash('Error al buscar productos')
+            flash(f'Error al buscar productos: {str(e)}')
     
-    return redirect(url_for('main.table_page'))
-
+    return render_template('table.html', products=[], total=0)
+    
 @bp.route('/update_products', methods=['POST'])
 def update_products():
     if 'user_id' not in session:
