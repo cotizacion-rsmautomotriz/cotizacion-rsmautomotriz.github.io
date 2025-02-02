@@ -14,10 +14,8 @@
             </div>
         </form>
     </div>
-</div>
 
-
-    {% if products %}
+    {% if show_table and products %}
     <div class="container3">
         <h2>Repuestos del día {{ search_date }}</h2>
         <form action="/update_products" method="POST" id="edit-form">
@@ -67,8 +65,6 @@
 </div>
 
 <style>
-/* ... estilos existentes ... */
-
 .edit-input {
     border: none;
     background: transparent;
@@ -131,9 +127,11 @@ function toggleEdit() {
         editButton.textContent = 'Editar';
         editButton.style.backgroundColor = '#ffc107';
         saveButton.style.display = 'none';
-        // Recargar la página para descartar cambios
         location.reload();
     }
+}
+</script>
+{% endblock %}
 }
 </script>
 {% endblock %}
