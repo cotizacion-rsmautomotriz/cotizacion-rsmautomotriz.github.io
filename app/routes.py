@@ -133,11 +133,11 @@ def search_by_date():
     search_date = request.form.get('search_date')
     if search_date:
         try:
-            # Convertir la fecha a un formato consistente en la base de datos (yyyy-mm-dd)
+            # Convertir la fecha a un formato consistente
             date_obj = datetime.strptime(search_date, '%Y-%m-%d')
             formatted_date = date_obj.strftime('%Y-%m-%d')
             
-            # Buscar productos en la base de datos por fecha
+            # Buscar productos en la base de datos
             products = Product.query.filter_by(
                 user_id=session['user_id'],
                 date=formatted_date
@@ -146,10 +146,9 @@ def search_by_date():
             if products:
                 saved_products = [
                     {
-                        'id': product.id,
                         'name': product.name,
                         'amount': product.amount,
-                        'date': product.date
+                        'date': formatted_date
                     }
                     for product in products
                 ]
@@ -159,7 +158,8 @@ def search_by_date():
                     'table.html', 
                     products=saved_products, 
                     total=total,
-                    search_date=formatted_date
+                    search_date=formatted_date,
+                    show_table=True  # New flag to control table visibility
                 )
             else:
                 flash(f'No se encontraron productos para la fecha {formatted_date}')
@@ -303,26 +303,12 @@ def search_page():
         return redirect(url_for('main.login'))
     return render_template('search.html')
 
-@bp.route('/table_page', methods=['GET', 'POST'])
+@bp.route('/table_page')
 def table_page():
     if 'user_id' not in session:
         return redirect(url_for('main.login'))
     
-    try:
-        products = Product.query.filter_by(user_id=session['user_id']).all()
-        product_list = [
-            {
-                'id': product.id,
-                'name': product.name,
-                'amount': product.amount,
-            } for product in products
-        ]
-        total = sum(float(product['amount']) for product in product_list)
-        return render_template('table.html', products=product_list, total=total)
-    except Exception as e:
-        flash(f'Error al cargar la tabla: {str(e)}')
-        return redirect(url_for('main.dashboard'))
-
+    return render_template('table.html', show_table=False) 
 @bp.route('/save_current_date', methods=['POST'])
 def save_current_date():
     if 'user_id' not in session:
