@@ -1,14 +1,12 @@
-{# Primero extendemos la plantilla base #}
 {% extends "base.html" %}
 
-{# Definimos el bloque de título #}
 {% block title %}
     Búsqueda por Fecha
 {% endblock title %}
 
-{# Definimos el bloque de contenido #}
 {% block content %}
 <div class="cotizacion">
+    {% if not show_table %}
     <div class="container2">
         <form action="/search_by_date" method="POST">
             <div class="container2-a3">
@@ -17,10 +15,10 @@
             </div>
             <div class="container4">
                 <button type="submit" class="button button-tree">Cargar</button>
-                <a href="{{ url_for('main.dashboard') }}" class="button button-back">Volver</a>
             </div>
         </form>
     </div>
+    {% endif %}
 
     {% if show_table and products %}
     <div class="container3">
@@ -51,14 +49,18 @@
                     {% endfor %}
                 </tbody>
             </table>
+            <div class="total">
+                <strong>Total:</strong> ${{ total }}
+            </div>
             <div class="button-container">
                 <button type="button" class="button button-edit" onclick="toggleEdit()">Editar</button>
                 <button type="submit" class="button button-save" style="display: none;">Guardar Cambios</button>
+                <a href="{{ url_for('main.table_page') }}" class="button button-back">Volver</a>
+                <button type="button" class="button button-share" onclick="shareData()">
+                    <i class="fas fa-share-alt"></i> Compartir
+                </button>
             </div>
         </form>
-        <div class="total">
-            <strong>Total:</strong> ${{ total }}
-        </div>
     </div>
     {% endif %}
 
@@ -71,7 +73,41 @@
     {% endwith %}
 </div>
 
+<!-- Modal and overlay for sharing -->
+<div class="modal-overlay" id="modalOverlay"></div>
+<div class="share-modal" id="shareModal">
+    <h3>Compartir datos</h3>
+    <div class="share-options">
+        <div class="share-option" onclick="shareViaWhatsApp()">
+            <i class="fab fa-whatsapp"></i>
+            <span>WhatsApp</span>
+        </div>
+        <div class="share-option" onclick="shareViaEmail()">
+            <i class="fas fa-envelope"></i>
+            <span>Email</span>
+        </div>
+        <div class="share-option" onclick="downloadImage()">
+            <i class="fas fa-image"></i>
+            <span>Descargar Imagen</span>
+        </div>
+    </div>
+</div>
+
+<!-- Container for image generation -->
+<div id="imageContainer" style="display: none; background: white; padding: 20px; border-radius: 10px;">
+    <div style="display: flex; align-items: center; margin-bottom: 20px;">
+        <img src="{{ url_for('static', filename='logorsmautomotriz.png') }}" 
+             alt="RSM Automotriz" 
+             style="width: 195px; height: auto; margin-right: 45px;">
+        <h2 class="image-title" style="color: #000; margin: 0 0 0 5px; flex-grow: 1; text-align: center; font-weight: bold;"></h2>
+    </div>
+    <table class="image-table" style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+    </table>
+    <div class="image-total" style="font-weight: bold; font-size: 1.2em; color: #000;"></div>
+</div>
+
 <style>
+/* Existing styles */
 .edit-input {
     border: none;
     background: transparent;
@@ -88,34 +124,92 @@
     background: white;
 }
 
-.button-edit {
-    background-color: #ffc107;
-    color: black;
-    padding: 10px 20px;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-    margin-top: 20px;
-}
-
-.button-save {
-    background-color: #28a745;
-    color: white;
-    padding: 10px 20px;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-    margin-top: 20px;
-    margin-left: 10px;
-}
-
 .button-container {
     display: flex;
     gap: 10px;
     margin-top: 20px;
 }
+
+.button {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.button-edit {
+    background-color: #ffc107;
+    color: black;
+}
+
+.button-save {
+    background-color: #28a745;
+    color: white;
+}
+
+.button-back {
+    background-color: #6c757d;
+    color: white;
+    text-decoration: none;
+}
+
+.button-share {
+    background-color: #4267B2;
+    color: white;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* Modal styles */
+.share-modal {
+    display: none;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    z-index: 1000;
+}
+
+.share-options {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-top: 15px;
+}
+
+.share-option {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 10px;
+    cursor: pointer;
+    border-radius: 5px;
+    transition: background-color 0.3s;
+}
+
+.share-option:hover {
+    background-color: #f0f0f0;
+}
+
+.modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 999;
+}
 </style>
 
+<script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
 <script>
 function toggleEdit() {
     const inputs = document.querySelectorAll('.edit-input');
@@ -137,6 +231,133 @@ function toggleEdit() {
         location.reload();
     }
 }
+
+function shareData() {
+    const modal = document.getElementById('shareModal');
+    const overlay = document.getElementById('modalOverlay');
+    modal.style.display = 'block';
+    overlay.style.display = 'block';
+}
+
+function closeModal() {
+    const modal = document.getElementById('shareModal');
+    const overlay = document.getElementById('modalOverlay');
+    modal.style.display = 'none';
+    overlay.style.display = 'none';
+}
+
+function generateImage() {
+    const container = document.getElementById('imageContainer');
+    const title = container.querySelector('.image-title');
+    const table = container.querySelector('.image-table');
+    const totalDiv = container.querySelector('.image-total');
+    
+    return new Promise((resolve) => {
+        const logo = container.querySelector('img');
+        
+        function onLogoLoad() {
+            title.textContent = `Repuestos RSM ${document.querySelector('h2').textContent.split(' ').pop()}`;
+            
+            let tableHTML = `
+                <tr>
+                    <th style="padding: 12px; border: 1px solid #000; text-align: left; background-color: #2153d3; color: white; font-weight: bold;">Repuesto</th>
+                    <th style="padding: 12px; border: 1px solid #000; text-align: left; background-color: #2153d3; color: white; font-weight: bold;">Monto</th>
+                </tr>
+            `;
+            
+            const originalRows = document.querySelectorAll('tbody tr');
+            originalRows.forEach(row => {
+                const inputs = row.querySelectorAll('input');
+                tableHTML += `
+                    <tr>
+                        <td style="padding: 12px; border: 1px solid #000; color: #000; font-weight: bold;">${inputs[0].value}</td>
+                        <td style="padding: 12px; border: 1px solid #000; color: #000; font-weight: bold;">$${inputs[1].value}</td>
+                    </tr>
+                `;
+            });
+            
+            table.innerHTML = tableHTML;
+            totalDiv.textContent = document.querySelector('.total').textContent;
+            
+            container.style.display = 'block';
+            
+            html2canvas(container, {
+                backgroundColor: 'white',
+                scale: 2,
+                useCORS: true,
+                allowTaint: true,
+                logging: true,
+            }).then(canvas => {
+                container.style.display = 'none';
+                resolve(canvas);
+            });
+        }
+
+        if (logo.complete) {
+            onLogoLoad();
+        } else {
+            logo.onload = onLogoLoad;
+        }
+    });
+}
+
+async function downloadImage() {
+    try {
+        const canvas = await generateImage();
+        const link = document.createElement('a');
+        link.download = 'productos.png';
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+        closeModal();
+    } catch (error) {
+        console.error('Error al generar la imagen:', error);
+        alert('Error al generar la imagen');
+    }
+}
+
+async function shareViaWhatsApp() {
+    try {
+        const canvas = await generateImage();
+        canvas.toBlob(async (blob) => {
+            try {
+                const file = new File([blob], "productos.png", { type: "image/png" });
+                const filesArray = [file];
+                
+                if (navigator.share && navigator.canShare({ files: filesArray })) {
+                    await navigator.share({
+                        files: filesArray,
+                        title: 'Productos',
+                    });
+                } else {
+                    const imageUrl = canvas.toDataURL('image/png');
+                    window.open(`https://wa.me/?text=${encodeURIComponent('Productos')}`, '_blank');
+                }
+                closeModal();
+            } catch (error) {
+                console.error('Error al compartir:', error);
+                alert('Error al compartir la imagen');
+            }
+        });
+    } catch (error) {
+        console.error('Error al generar la imagen:', error);
+        alert('Error al generar la imagen');
+    }
+}
+
+async function shareViaEmail() {
+    try {
+        const canvas = await generateImage();
+        const imageData = canvas.toDataURL('image/png');
+        const emailBody = `Productos adjuntos en la imagen.`;
+        const mailtoLink = `mailto:?subject=Productos&body=${encodeURIComponent(emailBody)}`;
+        window.location.href = mailtoLink;
+        closeModal();
+    } catch (error) {
+        console.error('Error al generar la imagen:', error);
+        alert('Error al generar la imagen');
+    }
+}
+
+document.getElementById('modalOverlay').onclick = closeModal;
 </script>
 {% endblock content %}
-
