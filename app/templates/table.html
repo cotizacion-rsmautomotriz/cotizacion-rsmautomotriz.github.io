@@ -1,5 +1,12 @@
+{# Primero extendemos la plantilla base #}
 {% extends "base.html" %}
-{% block title %}Búsqueda por Fecha{% endblock %}
+
+{# Definimos el bloque de título #}
+{% block title %}
+    Búsqueda por Fecha
+{% endblock title %}
+
+{# Definimos el bloque de contenido #}
 {% block content %}
 <div class="cotizacion">
     <div class="container2">
@@ -131,8 +138,5 @@ function toggleEdit() {
     }
 }
 </script>
-{% endblock %}
-}
-</script>
-{% endblock %}
+{% endblock content %}
 
