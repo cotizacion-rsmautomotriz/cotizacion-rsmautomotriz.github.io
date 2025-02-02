@@ -81,18 +81,14 @@ def add_product():
         if 'temp_products' not in session:
             session['temp_products'] = []
         
-        # Convertir la fecha al formato correcto
-        date_obj = datetime.strptime(date, '%Y-%m-%d')
-        formatted_date = date_obj.strftime('%d/%m/%Y')
-        
+        # Guardar la fecha en el formato original YYYY-MM-DD
         session['temp_products'].append({
             'name': product_name,
             'amount': amount,
-            'date': formatted_date
+            'date': date  # Guardamos la fecha en formato YYYY-MM-DD
         })
         
-        # Guardar la fecha en la sesión
-        session['current_date'] = date  # Guardamos el formato original
+        session['current_date'] = date
         session.modified = True
     
     return redirect(url_for('main.dashboard'))
@@ -109,7 +105,7 @@ def save_products():
                 new_product = Product(
                     name=product['name'],
                     amount=float(product['amount']),
-                    date=product['date'],
+                    date=product['date'],  # Ya está en formato YYYY-MM-DD
                     user_id=session['user_id']
                 )
                 db.session.add(new_product)
@@ -133,14 +129,10 @@ def search_by_date():
     search_date = request.form.get('search_date')
     if search_date:
         try:
-            # Convertir la fecha a un formato consistente
-            date_obj = datetime.strptime(search_date, '%Y-%m-%d')
-            formatted_date = date_obj.strftime('%Y-%m-%d')
-            
-            # Buscar productos en la base de datos
+            # La fecha ya viene en formato YYYY-MM-DD del input type="date"
             products = Product.query.filter_by(
                 user_id=session['user_id'],
-                date=formatted_date
+                date=search_date
             ).all()
             
             if products:
@@ -148,21 +140,26 @@ def search_by_date():
                     {
                         'name': product.name,
                         'amount': product.amount,
-                        'date': formatted_date
+                        'date': product.date
                     }
                     for product in products
                 ]
                 total = sum(float(product['amount']) for product in saved_products)
                 
+                # Formatear la fecha para mostrar
+                display_date = datetime.strptime(search_date, '%Y-%m-%d').strftime('%d/%m/%Y')
+                
                 return render_template(
                     'table.html', 
                     products=saved_products, 
                     total=total,
-                    search_date=formatted_date,
-                    show_table=True  # New flag to control table visibility
+                    search_date=display_date,
+                    show_table=True
                 )
             else:
-                flash(f'No se encontraron productos para la fecha {formatted_date}')
+                # Formatear la fecha para el mensaje
+                display_date = datetime.strptime(search_date, '%Y-%m-%d').strftime('%d/%m/%Y')
+                flash(f'No se encontraron productos para la fecha {display_date}')
         except Exception as e:
             flash('Error al buscar productos')
     
@@ -179,20 +176,16 @@ def update_products():
         product_dates = request.form.getlist('dates[]')
         edit_date = request.form.get('edit_date')
         
-        # Normalizar formato de fecha
-        date_obj = datetime.strptime(edit_date, '%Y-%m-%d')
-        formatted_date = date_obj.strftime('%Y-%m-%d')
-        
-        # Verificar si hay productos antes de eliminarlos
-        if Product.query.filter_by(user_id=session['user_id'], date=formatted_date).count() > 0:
-            Product.query.filter_by(user_id=session['user_id'], date=formatted_date).delete()
+        # La fecha ya debe estar en formato YYYY-MM-DD
+        # Eliminar productos existentes
+        Product.query.filter_by(user_id=session['user_id'], date=edit_date).delete()
         
         # Agregar productos actualizados
         for name, amount, date in zip(product_names, product_amounts, product_dates):
             new_product = Product(
                 name=name,
                 amount=float(amount),
-                date=date,
+                date=edit_date,  # Usamos la fecha de edición
                 user_id=session['user_id']
             )
             db.session.add(new_product)
