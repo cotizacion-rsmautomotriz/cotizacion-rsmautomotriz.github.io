@@ -173,29 +173,39 @@ def update_products():
     try:
         product_names = request.form.getlist('names[]')
         product_amounts = request.form.getlist('amounts[]')
-        product_dates = request.form.getlist('dates[]')
         edit_date = request.form.get('edit_date')
         
-        # La fecha ya debe estar en formato YYYY-MM-DD
-        # Eliminar productos existentes
-        Product.query.filter_by(user_id=session['user_id'], date=edit_date).delete()
+        # Convertir la fecha al formato correcto para la base de datos (YYYY-MM-DD)
+        if '/' in edit_date:
+            day, month, year = edit_date.split('/')
+            edit_date = f"{year}-{month}-{day}"
+        
+        # Eliminar productos existentes de esa fecha
+        Product.query.filter_by(
+            user_id=session['user_id'],
+            date=edit_date
+        ).delete()
         
         # Agregar productos actualizados
-        for name, amount, date in zip(product_names, product_amounts, product_dates):
-            new_product = Product(
-                name=name,
-                amount=float(amount),
-                date=edit_date,  # Usamos la fecha de edición
-                user_id=session['user_id']
-            )
-            db.session.add(new_product)
+        for name, amount in zip(product_names, product_amounts):
+            if name and amount:  # Verificar que no estén vacíos
+                new_product = Product(
+                    name=name,
+                    amount=float(amount),
+                    date=edit_date,
+                    user_id=session['user_id']
+                )
+                db.session.add(new_product)
         
         db.session.commit()
-        flash('Cambios guardados exitosamente')
-        return redirect(url_for('main.table_page'))
+        flash('Productos actualizados exitosamente', 'success')
+        
+        # Redirigir de vuelta a la página de búsqueda con la misma fecha
+        return redirect(url_for('main.search_by_date'), code=307)
+    
     except Exception as e:
         db.session.rollback()
-        flash(f'Error al guardar los cambios: {str(e)}')
+        flash(f'Error al actualizar los productos: {str(e)}', 'error')
         return redirect(url_for('main.table_page'))
 
 
