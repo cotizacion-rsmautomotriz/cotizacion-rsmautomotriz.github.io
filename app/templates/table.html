@@ -218,7 +218,20 @@ function toggleEdit() {
     const saveButton = document.querySelector('.button-save');
     
     inputs.forEach(input => {
-        input.readOnly = !input.readOnly;
+        if (input.readOnly) {
+            // Al entrar en modo edición
+            input.readOnly = false;
+            input.style.border = '1px solid #ddd';
+            input.style.backgroundColor = '#fff';
+            if (input.type === 'number') {
+                input.step = '0.01'; // Para permitir decimales
+            }
+        } else {
+            // Al salir del modo edición
+            input.readOnly = true;
+            input.style.border = 'none';
+            input.style.backgroundColor = 'transparent';
+        }
     });
     
     if (editButton.textContent === 'Editar') {
@@ -229,9 +242,50 @@ function toggleEdit() {
         editButton.textContent = 'Editar';
         editButton.style.backgroundColor = '#ffc107';
         saveButton.style.display = 'none';
-        location.reload();
+        // Recargar la página solo si se cancela la edición
+        if (!saveButton.clicked) {
+            location.reload();
+        }
     }
 }
+
+// Agregar evento para el formulario
+document.getElementById('edit-form').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    // Validar que todos los campos tengan valor
+    const inputs = document.querySelectorAll('.edit-input');
+    let isValid = true;
+    
+    inputs.forEach(input => {
+        if (!input.value.trim()) {
+            isValid = false;
+        }
+        if (input.type === 'number' && parseFloat(input.value) <= 0) {
+            isValid = false;
+        }
+    });
+    
+    if (!isValid) {
+        alert('Por favor, complete todos los campos correctamente');
+        return;
+    }
+    
+    // Si todo está bien, enviar el formulario
+    this.submit();
+});
+
+function updateTotal() {
+    const amounts = Array.from(document.getElementsByName('amounts[]'))
+        .map(input => parseFloat(input.value) || 0);
+    const total = amounts.reduce((sum, amount) => sum + amount, 0);
+    document.querySelector('.total strong').nextSibling.textContent = ` $${total.toFixed(2)}`;
+}
+
+// Agregar listener para actualizar el total cuando se modifiquen los montos
+document.querySelectorAll('input[name="amounts[]"]').forEach(input => {
+    input.addEventListener('input', updateTotal);
+});
 
 function shareData() {
     const modal = document.getElementById('shareModal');
