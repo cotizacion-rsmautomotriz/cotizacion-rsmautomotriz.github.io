@@ -298,6 +298,7 @@ document.querySelectorAll('input[name="amounts[]"]').forEach(input => {
     input.addEventListener('input', updateTotal);
 });
 
+// Función para mostrar el modal de compartir
 function shareData() {
     const modal = document.getElementById('shareModal');
     const overlay = document.getElementById('modalOverlay');
@@ -305,6 +306,7 @@ function shareData() {
     overlay.style.display = 'block';
 }
 
+// Función para cerrar el modal
 function closeModal() {
     const modal = document.getElementById('shareModal');
     const overlay = document.getElementById('modalOverlay');
@@ -312,6 +314,7 @@ function closeModal() {
     overlay.style.display = 'none';
 }
 
+// Función para generar la imagen
 function generateImage() {
     const container = document.getElementById('imageContainer');
     const title = container.querySelector('.image-title');
@@ -322,8 +325,15 @@ function generateImage() {
         const logo = container.querySelector('img');
         
         function onLogoLoad() {
-            title.textContent = `Repuestos RSM ${document.querySelector('h2').textContent.split(' ').pop()}`;
+            // Obtener fecha desde el título o texto de la página
+            const dateText = document.querySelector('h2') ? 
+                           document.querySelector('h2').textContent.split(' ').pop() :
+                           document.querySelector('.text1').textContent.split(' ').pop();
             
+            // Configurar el título
+            title.textContent = `Repuestos RSM ${dateText}`;
+            
+            // Crear la estructura de la tabla
             let tableHTML = `
                 <tr>
                     <th style="padding: 12px; border: 1px solid #000; text-align: left; background-color: #2153d3; color: white; font-weight: bold;">Repuesto</th>
@@ -331,22 +341,32 @@ function generateImage() {
                 </tr>
             `;
             
+            // Obtener las filas de productos
             const originalRows = document.querySelectorAll('tbody tr');
+            let total = 0;
+            
+            // Generar filas de la tabla
             originalRows.forEach(row => {
                 const inputs = row.querySelectorAll('input');
+                const amount = parseFloat(inputs[1].value) || 0;
+                total += amount;
+                
                 tableHTML += `
                     <tr>
                         <td style="padding: 12px; border: 1px solid #000; color: #000; font-weight: bold;">${inputs[0].value}</td>
-                        <td style="padding: 12px; border: 1px solid #000; color: #000; font-weight: bold;">$${inputs[1].value}</td>
+                        <td style="padding: 12px; border: 1px solid #000; color: #000; font-weight: bold;">$${amount.toFixed(2)}</td>
                     </tr>
                 `;
             });
             
+            // Actualizar la tabla y el total
             table.innerHTML = tableHTML;
-            totalDiv.textContent = document.querySelector('.total').textContent;
+            totalDiv.textContent = `Total: $${total.toFixed(2)}`;
             
+            // Mostrar el contenedor temporalmente para la captura
             container.style.display = 'block';
             
+            // Generar la imagen
             html2canvas(container, {
                 backgroundColor: 'white',
                 scale: 2,
@@ -366,7 +386,6 @@ function generateImage() {
         }
     });
 }
-
 function deleteRow(button) {
     const row = button.closest('tr');
     row.remove();
@@ -385,11 +404,12 @@ document.querySelectorAll('input[name="amounts[]"]').forEach(input => {
     input.addEventListener('input', updateTotal);
 });
 
+// Función para descargar la imagen
 async function downloadImage() {
     try {
         const canvas = await generateImage();
         const link = document.createElement('a');
-        link.download = 'productos.png';
+        link.download = 'repuestos-rsm.png';
         link.href = canvas.toDataURL('image/png');
         link.click();
         closeModal();
@@ -399,22 +419,25 @@ async function downloadImage() {
     }
 }
 
+
+// Función para compartir vía WhatsApp
 async function shareViaWhatsApp() {
     try {
         const canvas = await generateImage();
         canvas.toBlob(async (blob) => {
             try {
-                const file = new File([blob], "productos.png", { type: "image/png" });
+                const file = new File([blob], "repuestos-rsm.png", { type: "image/png" });
                 const filesArray = [file];
                 
                 if (navigator.share && navigator.canShare({ files: filesArray })) {
                     await navigator.share({
                         files: filesArray,
-                        title: 'Productos',
+                        title: 'Repuestos RSM',
                     });
                 } else {
+                    // Fallback para navegadores que no soportan Web Share API
                     const imageUrl = canvas.toDataURL('image/png');
-                    window.open(`https://wa.me/?text=${encodeURIComponent('Productos')}`, '_blank');
+                    window.open(`https://wa.me/?text=${encodeURIComponent('Repuestos RSM')}`, '_blank');
                 }
                 closeModal();
             } catch (error) {
@@ -428,12 +451,13 @@ async function shareViaWhatsApp() {
     }
 }
 
+// Función para compartir vía Email
 async function shareViaEmail() {
     try {
         const canvas = await generateImage();
         const imageData = canvas.toDataURL('image/png');
-        const emailBody = `Productos adjuntos en la imagen.`;
-        const mailtoLink = `mailto:?subject=Productos&body=${encodeURIComponent(emailBody)}`;
+        const emailBody = `Repuestos RSM adjuntos en la imagen.`;
+        const mailtoLink = `mailto:?subject=Repuestos RSM&body=${encodeURIComponent(emailBody)}`;
         window.location.href = mailtoLink;
         closeModal();
     } catch (error) {
@@ -442,6 +466,7 @@ async function shareViaEmail() {
     }
 }
 
+// Event listener para cerrar el modal al hacer clic fuera
 document.getElementById('modalOverlay').onclick = closeModal;
 </script>
 {% endblock content %}
