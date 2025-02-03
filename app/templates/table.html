@@ -8,16 +8,17 @@
 <div class="cotizacion">
     {% if not show_table %}
     <div class="container2">
-        <form action="/search_by_date" method="POST">
-            <div class="container2-a3">
-                <label for="date">Ingrese la Fecha:</label>
-                <input type="date" id="date" name="search_date" required>
-            </div>
-            <div class="container4">
-                <button type="submit" class="button button-tree">Cargar</button>
-            </div>
-        </form>
-    </div>
+    <form action="/search_by_date" method="POST">
+        <div class="container2-a3">
+            <label for="date">Ingrese la Fecha:</label>
+            <input type="date" id="date" name="search_date" required>
+        </div>
+        <div class="container4">
+            <button type="submit" class="button button-tree">Cargar</button>
+            <a href="{{ url_for('main.dashboard') }}" class="button button-back">Volver</a>
+        </div>
+    </form>
+</div>
     {% endif %}
 
     {% if show_table and products %}
