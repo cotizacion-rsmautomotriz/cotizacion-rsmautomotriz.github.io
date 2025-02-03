@@ -31,6 +31,7 @@
             <tr>
                 <th>Repuesto</th>
                 <th>Monto</th>
+                <th class="action-column" style="display: none;">Acción</th>
             </tr>
         </thead>
         <tbody>
@@ -54,17 +55,20 @@
                            min="0.01"
                            required>
                 </td>
+                <td class="action-cell" style="display: none;">
+                    <button type="button" class="button-delete" onclick="deleteRow(this)">Borrar</button>
+                </td>
             </tr>
             {% endfor %}
         </tbody>
     </table>
-    <div class="total">
-        <strong>Total:</strong> ${{ total }}
-    </div>
     <div class="button-container">
         <button type="button" class="button button-edit" onclick="toggleEdit()">Editar</button>
         <button type="submit" class="button button-save" style="display: none;">Guardar Cambios</button>
         <a href="{{ url_for('main.table_page') }}" class="button button-back">Volver</a>
+        <button type="button" class="button button-share" onclick="shareData()">
+            <i class="fas fa-share-alt"></i> Compartir
+        </button>
     </div>
 </form>
     </div>
