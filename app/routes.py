@@ -175,7 +175,6 @@ def update_products():
         product_amounts = request.form.getlist('amounts[]')
         edit_date = request.form.get('edit_date')
         
-        # Convertir la fecha al formato correcto para la base de datos (YYYY-MM-DD)
         if '/' in edit_date:
             day, month, year = edit_date.split('/')
             edit_date = f"{year}-{month}-{day}"
@@ -188,7 +187,7 @@ def update_products():
         
         # Agregar productos actualizados
         for name, amount in zip(product_names, product_amounts):
-            if name and amount:  # Verificar que no estén vacíos
+            if name and amount:  # Solo agregar si hay nombre y monto
                 new_product = Product(
                     name=name,
                     amount=float(amount),
@@ -199,15 +198,12 @@ def update_products():
         
         db.session.commit()
         flash('Productos actualizados exitosamente', 'success')
-        
-        # Redirigir de vuelta a la página de búsqueda con la misma fecha
         return redirect(url_for('main.search_by_date'), code=307)
-    
+        
     except Exception as e:
         db.session.rollback()
         flash(f'Error al actualizar los productos: {str(e)}', 'error')
         return redirect(url_for('main.table_page'))
-
 
 @bp.route('/table')
 def table():
