@@ -225,18 +225,15 @@ function toggleEdit() {
     const inputs = document.querySelectorAll('.edit-input');
     const editButton = document.querySelector('.button-edit');
     const saveButton = document.querySelector('.button-save');
+    const actionCells = document.querySelectorAll('.action-cell');
+    const actionColumn = document.querySelector('.action-column');
     
     inputs.forEach(input => {
         if (input.readOnly) {
-            // Al entrar en modo edición
             input.readOnly = false;
             input.style.border = '1px solid #ddd';
             input.style.backgroundColor = '#fff';
-            if (input.type === 'number') {
-                input.step = '0.01'; // Para permitir decimales
-            }
         } else {
-            // Al salir del modo edición
             input.readOnly = true;
             input.style.border = 'none';
             input.style.backgroundColor = 'transparent';
@@ -247,14 +244,19 @@ function toggleEdit() {
         editButton.textContent = 'Cancelar';
         editButton.style.backgroundColor = '#dc3545';
         saveButton.style.display = 'block';
+        actionColumn.style.display = 'table-cell';
+        actionCells.forEach(cell => {
+            cell.style.display = 'table-cell';
+        });
     } else {
         editButton.textContent = 'Editar';
         editButton.style.backgroundColor = '#ffc107';
         saveButton.style.display = 'none';
-        // Recargar la página solo si se cancela la edición
-        if (!saveButton.clicked) {
-            location.reload();
-        }
+        actionColumn.style.display = 'none';
+        actionCells.forEach(cell => {
+            cell.style.display = 'none';
+        });
+        location.reload();
     }
 }
 
@@ -364,6 +366,24 @@ function generateImage() {
         }
     });
 }
+
+function deleteRow(button) {
+    const row = button.closest('tr');
+    row.remove();
+    updateTotal();
+}
+
+function updateTotal() {
+    const amounts = Array.from(document.getElementsByName('amounts[]'))
+        .map(input => parseFloat(input.value) || 0);
+    const total = amounts.reduce((sum, amount) => sum + amount, 0);
+    document.querySelector('.total strong').nextSibling.textContent = ` $${total.toFixed(2)}`;
+}
+
+// Agregar evento para actualizar el total cuando se modifiquen los montos
+document.querySelectorAll('input[name="amounts[]"]').forEach(input => {
+    input.addEventListener('input', updateTotal);
+});
 
 async function downloadImage() {
     try {
